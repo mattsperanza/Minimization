@@ -10,4 +10,4 @@ add_executable(
         src/LBFGS.h
         src/Minimizer.cpp
         src/Minimizer.h
-)
+        src/SteepestDescent.h "src/LineSearch.h")
