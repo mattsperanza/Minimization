@@ -9,11 +9,11 @@
 #include <cmath>
 #include <type_traits>
 #include <functional>
-#include "BacktrackingLineSearch.h"
-#include "Minimizer.h"
+
+using namespace std;
 
 template <typename T>
-class LBFGS : public Minimizer<T> {
+class LBFGS {
     static_assert(std::is_floating_point<T>::value, "L-BFGS can only be used with floating point types");
 
 public:
@@ -43,7 +43,7 @@ public:
     /**
      * TODO: Free all memory used by LBFGS
      */
-    ~LBFGS() override {
+    ~LBFGS() {
         free(rho);
         free(alpha);
         free(gamma);
@@ -64,7 +64,7 @@ public:
  * @param X Initial Position
  * @param G Initial Position Grad
  */
-void init(T* X, T* G, T steepest_descent_step_size) override {
+void init(T* X, T* G, T steepest_descent_step_size) {
     for (int i = 0; i < DOF; ++i) {
         prev_positions[i] = X[i];
         prev_gradient[i] = G[i];
@@ -82,7 +82,7 @@ void init(T* X, T* G, T steepest_descent_step_size) override {
 /**
  * This will loop over minimize step and a line search. Implement later
  */
-void minimize() override {
+void minimize() {
     bool found_minimum = false;
     int j = 0;
     int maxcount2 = 1000000;
@@ -122,7 +122,7 @@ void minimize() override {
 
         }
         sum_of_residuals = sqrtf((sum_of_residuals / DOF));
-        if (is_minimized() == true || sum_of_residuals < 1e-7) {
+        if (minimized == true || sum_of_residuals < 1e-7) {
             std::cout << "found minimum\n";
             std::cout << "Number of Steps: " << j << "\n";
             found_minimum = true;
@@ -130,51 +130,9 @@ void minimize() override {
 
     }
 }
-T line_search(T(*function)(T*), void(*gradient)(T*, T*)) {
-    T step = 1;
-    T* x_plus_step = (T*)malloc(DOF * sizeof(T));
-    T c1 = 1e-3;
-
-    for (int i = 0; i < 1000; ++i) {
-        for (int i = 0; i < DOF; ++i) {
-            x_plus_step[i] = X[i] + (step * q[i]);
-        }
-        if (function(x_plus_step) <= function(X) + (c1 * step * dot_product(q, gradient(X), DOF))) {
-            free(x_plus_step);
-            return step;
-        }
-        else {
-            step *= 0.5;
-        }
-    }
-    free(x_plus_step);
-    return 0;
-}
 
 
-// checks if a large enough step is taken
-/*
-bool armijo_rule(T* function(T*), T* gradient(T*), step) {
-    T *x_plus_step = (T*) malloc(DOF*sizeof(T));
-    for (int i = 0; i < DOF; ++i) {
-        x_plus_step[i] = X[i] + (step * q[i]);
-    }
-    bool result = (function(x_plus_step) <= function(X) + (c1 * step * dot_product(q, gradient(X), DOF);
-    free(x_plus_step);
-    return result;
-}*/
-/*bool curvature_condition(T* function(T*), T* gradient(T*), step) {
-    T *x_plus_step = (T*)malloc(DOF * sizeof(T));
-    for (int i = 0; i < DOF; ++i) {
-        x_plus_step[i] = X[i] + (step * q[i]);
-    }
-    bool result = (abs(dot_product(q, gradient(x_plus_step), DOF)) <= c2 * abs(dot_product(q, gradient(X);// abs value makes it strong wolfe condtions
-    free(x_plus_step);
-    return result;
-}*/
 /**
- * TODO: Implement the below algorithm and call the update() method to store information gained from X and G
- * TODO: Return x_i-1 + step_size * search
  * 1. Compute new L-BFGS step direction
  *   Pseudocode from wikipedia:
  *   q = g.i // search direction to be updated
@@ -191,7 +149,7 @@ bool armijo_rule(T* function(T*), T* gradient(T*), step) {
  *   rho.j = 1 / (y.j.T * s.j)
  */
 
-void minimize_step(T* X_input, T* G_input) override {
+void minimize_step(T* X_input, T* G_input) {
     for (int i = 0; i < DOF; ++i) {
         X[i] = X_input[i];
         G[i] = G_input[i];
@@ -199,16 +157,9 @@ void minimize_step(T* X_input, T* G_input) override {
     for (int i = 0; i < DOF; ++i) {
         q[i] = G[i];
     }
-    //Minimizer::adaptive_step_size(X, prev_positions, G, prev_gradient, DOF);
-    /*if (step_size > max_step_size) {
-        step_size = 0.1;
-    }*/
-    //std::cout << "step size: " << step_size << "\n";
     update();
     for (int i = m - 1; i >= 0; --i) {
         alpha[i] = rho[i] * dot_product(s + i * DOF, q, DOF);
-
-
         for (int j = 0; j < DOF; ++j) {
             q[j] -= alpha[i] * y[i * DOF + j];
         }
@@ -228,17 +179,6 @@ void minimize_step(T* X_input, T* G_input) override {
     }
     BacktrackingLineSearch<double> backtracking(X, G, q, DOF, func);
     step_size = backtracking.linesearch(); 
-    /*if (step_size <= 1e-7) {
-        for (int i = 0; i < m * DOF; i++) {
-            s[i] = 0;
-            y[i] = 0;
-        }
-        for (int i = 0; i < m; i++) {
-            rho[i] = 0;
-            alpha[i] = 0;
-        }
-        LBFGS::init(X, G, 0.0001);  
-    }*/
     std::cout << "step size: " << step_size << "\n";
     for (int j = 0; j < DOF; ++j) {
         X[j] += (step_size * -q[j]);
@@ -246,7 +186,6 @@ void minimize_step(T* X_input, T* G_input) override {
     }
     
 }
-
 
 void update() {
     for (int i = 0; i < ((m - 1) * DOF); ++i) {
@@ -258,34 +197,23 @@ void update() {
         s[(m - 1) * DOF + i] = X[i] - prev_positions[i];
         y[(m - 1) * DOF + i] = G[i] - prev_gradient[i];
     }
-
     for (int i = 0; i < m - 1; ++i) {
         rho[i] = rho[i + 1];
     }
+
     double s_dot_y = dot_product((s + (m - 1) * DOF), (y + (m - 1) * DOF), DOF);
+
     if (s_dot_y == 0) {
         std::cout << "Error: Dividing by zero. Function is likely already at a minimum.\n";
         minimized = true;
     }
- 
     else {
-
         rho[m - 1] = 1 / s_dot_y;
     }
- 
-
     for (int i = 0; i < DOF; ++i) {
         prev_positions[i] = X[i];
         prev_gradient[i] = G[i];
     }
-      
-}
-
-bool is_minimized() {
-    return minimized;
-}
-T get_step_size() {
-    return step_size;
 }
 
 private:
@@ -321,6 +249,58 @@ private:
         }
         return result;
     }
+};
+
+template <typename T>
+class BacktrackingLineSearch {
+public:
+    BacktrackingLineSearch(T* x, T* g, T* q, int dof, function<T(T*)> user_func) : X(x), G(g), DOF(dof), func(user_func) {
+        x_plus_step = (T*)malloc(DOF * sizeof(T));
+        search_direction = (T*)malloc(DOF * sizeof(T));
+        for (int i = 0; i < DOF; i++) {
+            search_direction[i] = -q[i];
+        }
+
+    }
+    T linesearch() {
+        int max_it = 1000;
+        T c = 0.5;
+        T tau = 0.75;
+        T m = dot_product(G, search_direction, DOF);
+        T step_size = 1;
+        for (int i = 0; i < max_it; i++) {
+            for (int j = 0; j < DOF; ++j) {
+                x_plus_step[j] = X[j] + (step_size * search_direction[j]);
+            }
+            if (func(X) - func(x_plus_step) >= step_size * -c * m) {
+                return step_size;
+            }
+            else {
+                step_size *= tau;
+            }
+        }
+        return 0;
+    }
+    ~BacktrackingLineSearch() {
+        free(x_plus_step);
+        free(search_direction);
+    }
+private:
+    T* X;
+    T* G;
+    T* x_plus_step;
+    T* search_direction;
+    int DOF;
+    function<T(T*)> func;
+
+    T dot_product(T* a, T* b, int n) {
+        T result = 0;
+        for (int i = 0; i < n; ++i) {
+            result += a[i] * b[i];
+        }
+        return result;
+    }
+
 };
 
 #endif //LBFGS_H

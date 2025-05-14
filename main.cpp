@@ -1,8 +1,6 @@
 #include <iostream>
 #include <cmath>
 #include "src/LBFGS.h"
-#include "src/SteepestDescent.h"
-#include "src/BacktrackingLineSearch.h"
 
 
 double fn(double* in) {
@@ -18,8 +16,13 @@ double fn2(double* in) {
  
     return (-2 * exp(-((in[0] + 2) * (in[0] + 2))/2)) - exp(-((in[0] - 2) * (in[0] - 2)) / 2) + ((in[0] * in[0]) / 20) + ((in[0] * in[1])/10) + exp(in[1] * in[1] * in[1] * in[1] * in [1]) + exp(-in[1] * in[1] * in[1] * in[1] * in[1]);
 }
-
-function<double(double*)> func = [](double* in) { return (-2 * exp(-((in[0] + 2) * (in[0] + 2)) / 2)) - exp(-((in[0] - 2) * (in[0] - 2)) / 2) + ((in[0] * in[0]) / 20) + ((in[0] * in[1]) / 10) + exp(in[1] * in[1] * in[1] * in[1] * in[1]) + exp(-in[1] * in[1] * in[1] * in[1] * in[1]);};
+double my_const = 12;
+function<double(double*)> func = [](double* in) {
+return (-2 * exp(-((in[0] + 2) * (in[0] + 2)) / 2)) - exp(-((in[0] - 2) * (in[0] - 2)) / 2) + ((in[0] * in[0]) / 20) + ((in[0] * in[1]) / 10) + exp(in[1] * in[1] * in[1] * in[1] * in[1]) + exp(-in[1] * in[1] * in[1] * in[1] * in[1]);
+// Copy X onto GPU
+// Potential Eval
+// Copy f(X) & G onto CPU
+};
 function<void(double*, double*)> grad = [](double* in, double* out) {
     out[0] = (2 * (in[0] + 2) * exp(-((in[0] + 2) * (in[0] + 2)) / 2)) + ((in[0] - 2) * exp(-((in[0] - 2) * (in[0] - 2)) / 2)) + ((in[0] + in[1]) / 10);
     out[1] = (in[0] / 10) + ((5 * in[1] * in[1] * in[1] * in[1]) * (exp(in[1] * in[1] * in[1] * in[1] * in[1]) - exp(-in[1] * in[1] * in[1] * in[1] * in[1])));
